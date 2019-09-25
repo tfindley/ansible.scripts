@@ -1,0 +1,51 @@
+- hosts: debian
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  tasks:
+
+  - name: Update Server via Apt
+    apt:
+      upgrade: dist
+      update_cache: yes
+
+  - name: Check if reboot is required
+    stat:
+      path: /var/run/reboot-required
+    register: reboot_required_file
+
+  - name: Prompt for rebooting
+    pause:
+      prompt: "Press ENTER to reboot {{ item }} now, or Ctrl+C to abort."
+    # when: "'reboot_required_file' in hostvars[item] and hostvars[item]['reboot_required_file'].stat.exists"
+    when: reboot_required_file.stat.exists == True
+    # with_items: "{{ play_hosts }}"
+
+  - name: Reboot the Server if required
+    shell: "sleep 5 && /sbin/reboot"
+    async: 1
+    poll: 0
+    when: reboot_required_file.stat.exists == True
+
+  - name: Wait for the reboot to complete if there was a change.
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
+    when: reboot_required_file.stat.exists == True
+
+  - name: display post reboot update message
+    debug:
+      msg:
+        - 'Update completed'
+        - '- System rebooted'
+    when: reboot_required_file.stat.exists == True
+
+  - name: display post update message
+    debug:
+      msg:
+        - 'Update completed'
+        - '- No reboot required'
+    when: reboot_required_file.stat.exists == False
