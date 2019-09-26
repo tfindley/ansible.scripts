@@ -1,4 +1,4 @@
-- hosts: <<hostname>>
+- hosts: 
   become: yes
   become_user: root
   become_method: sudo
@@ -12,13 +12,15 @@
 
   tasks:
 
-  - name: Gather facts from new server
-    setup:
-      filter: ansible_facts.getent_passwd
+  - name: Determine local user accounts
+    getent:
+      database: passwd
 
-  - name: Change {{ user_name }}  password
+
+  - name: Change {{ user_name }} password
     user:
-      name: {{ user_name }}
-      password: {{ pass|password_hash('sha512') }}
+      name: "{{ user_name }}"
+      password: "{{ pass|password_hash('sha512') }}"
       update_password: always
+    with_items: "{{ user_name }}"
     when: item in ansible_facts.getent_passwd
