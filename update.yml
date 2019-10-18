@@ -1,4 +1,4 @@
-- hosts: linux-servers
+- hosts: servers
   become: yes
   become_user: root
   become_method: sudo
@@ -63,7 +63,7 @@
 
     - name: Install yum-utils so we can poll for reboot requirement
       yum:
-        name: yum-utils
+        name: "{{ansible_pkg_mgr}}-utils"
         state: latest
 
     - name: Update Server via YUM
@@ -71,11 +71,13 @@
         name: '*'
         state: latest
 
-    - name: Check if reboot is required
+# Currently on works on RHEL/CentOS 7 - 8 is waiting for an update to dnf-utils.
+    - name: Check if reboot is required yum
       command: /bin/needs-restarting -r
       register: reboot_required_yumu
       ignore_errors: True
       changed_when: False
+      when: ansible_distribution_major_version == "7"
 
     - name: display post update message
       debug:
