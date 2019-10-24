@@ -1,12 +1,40 @@
-- hosts: servers
+# Uncomment the following to the next seperator to use the hosts file
+# - hosts: servers
+#   become: yes
+#   become_user: root
+#   become_method: sudo
+
+# ----------------------------------------
+
+# Comment the following to the next seperator to use the IP Prompt
+
+- hosts: localhost
+  gather_facts: no
+  vars_prompt:
+  - name: target_host
+    prompt: Please enter the target host(s) IP (Seperate multiple hosts with comma)
+    private: no
+  tasks:
+    - add_host:
+        name: "{{ item }}"
+        groups: dynamically_created_hosts
+      with_items: "{{ target_host.split(',') }}"
+- hosts: dynamically_created_hosts
   become: yes
   become_user: root
   become_method: sudo
-  
-  tasks:
 
+# ----------------------------------------
+
+  tasks:
   - name: Update Debian-based systems
     block:
+
+    - name: Install aptitude for better apt update support with Ansible
+      apt:
+        name: "aptitude"
+        state: latest
+
 
     - name: Update Server via Apt
       apt:
@@ -32,11 +60,14 @@
       when: reboot_required_file.stat.exists == True
       # with_items: "{{ play_hosts }}"
 
-    - name: Reboot the Server if required
-      shell: ( /bin/sleep 5 ; /sbin/shutdown -r now "Ansible Updates Triggered" ) &
-      async: 1
-      poll: 0
+
+    - name: Reboot if required
+      reboot:
+        pre_reboot_delay: 5
+        post_reboot_delay: 15
+        msg: "System reboot required to complete update phase. Reboot initiated by Ansible::Update"
       when: reboot_required_file.stat.exists == True
+
 
     - name: Wait for the reboot to complete if there was a change.
       wait_for_connection:
@@ -93,19 +124,24 @@
       when: reboot_required_yumu.rc == 1
       # with_items: "{{ play_hosts }}"
 
-    - name: Reboot the Server if required
-      shell: ( /bin/sleep 5 ; /sbin/shutdown -r now "Ansible Updates Triggered" ) &
-      async: 1
-      poll: 0
+
+
+    - name: Reboot if required
+      reboot:
+        pre_reboot_delay: 5
+        post_reboot_delay: 15
+        msg: "System reboot required to complete update phase. Reboot initiated by Ansible::Update"
       when: reboot_required_yumu.rc == 1
 
-    - name: Wait for the reboot to complete if there was a change.
+
+    - name: Confirm the reboot was successful
       wait_for_connection:
         connect_timeout: 20
         sleep: 5
         delay: 5
         timeout: 300
       when: reboot_required_yumu.rc == 1
+
 
     - name: display post reboot update message
       debug:
