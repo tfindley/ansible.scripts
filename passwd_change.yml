@@ -10,17 +10,20 @@
   - name: pass
     prompt: Enter the password
 
-  tasks:
-
+  tasks: 
   - name: Determine local user accounts
     getent:
       database: passwd
 
+  - name: Print user info
+    debug:
+      msg: "{{ ansible_facts.getent_passwd[user_name] }}"
+    when: user_name in ansible_facts.getent_passwd
 
-  - name: Change {{ user_name }} password
+  - name: Change password for account {{ user_name }}
     user:
-      name: "{{ user_name }}"
-      password: "{{ pass|password_hash('sha512') }}"
+      name: "{{user_name}}"
+      password: "{{pass|password_hash('sha512') }}"
       update_password: always
-    with_items: "{{ user_name }}"
-    when: item in ansible_facts.getent_passwd
+    with_items: "{{user_name}}"
+    when: user_name in ansible_facts.getent_passwd

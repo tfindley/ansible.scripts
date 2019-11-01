@@ -1,0 +1,72 @@
+- hosts: servers
+  become: yes
+  become_user: root
+  become_method: sudo
+
+# README
+# ------
+# This is a pretty simple little play/role which will interogate the hosts passwd, group and shadow databases, and save them as json files to the local system.
+# You can turn on/off each database by changing the variable from True to False. You can turn on/off printing and exporting by turning those variables off too.
+
+# The output of this role will be .json files. The json output is unformatted but you can use a converter like http://www.convertcsv.com/json-to-csv.htm to format the JSON and/or convert to CSV.
+
+# To run this playbook you need to authenticate as a user with sudo or su privilages (see below for run examples) and you will need a populated inventory file.
+
+# SUDO capability with an SSH keypair:
+# $ ansible-playbook --private-key ~/ansible/server/ssh/id_rsa -i ~/ansible/server/inventory/hosts ~/ansible/scripts/report_users.yml -u ansible_user -K
+
+# SU capability with password authentication:
+# $ ansible-playbook --become-method=su -i ~/ansible/server/inventory/hosts ~/ansible/scripts/report_users.yml -u ansible_user -K -k
+
+  vars:
+    passwd: True
+    group: True
+    shadow: False
+
+    export_path: "~"
+    export: True
+    view: False
+
+  tasks: 
+  - name: Determine local users
+    getent:
+      database: passwd
+    when: passwd == True
+
+  - name: Print all users
+    debug:
+      msg: "{{ ansible_facts.getent_passwd }}"
+    when: passwd == True and view == True
+
+  - local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_users.json
+    when: passwd == True and export == True
+
+# -----------------------------------------
+
+  - name: Determine local groups
+    getent:
+      database: group
+    when: group == True
+
+  - name: Print all groups
+    debug:
+      msg: "{{ ansible_facts.getent_group }}"
+    when: group == True and view == True
+
+  - local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_groups.json
+    when: group == True and export == True
+
+# -----------------------------------------
+
+  - name: Determine local groups
+    getent:
+      database: shadow
+    when: shadow == True
+
+  - name: Print all user password hashes
+    debug:
+      msg: "{{ ansible_facts.getent_shadow }}"
+    when: shadow == True and view == True
+
+  - local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_shadow.json
+    when: shadow == True and export == True
