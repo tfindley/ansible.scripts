@@ -23,7 +23,7 @@
     group: True
     shadow: False
 
-    export_path: "~"
+    export_path: "/home/tristan"
     export: True
     view: False
 
@@ -38,7 +38,8 @@
       msg: "{{ ansible_facts.getent_passwd }}"
     when: passwd == True and view == True
 
-  - local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_users.json
+  - name: Write file to {{export_path}}/{{ansible_hostname}}_users.json
+    local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_users.json
     when: passwd == True and export == True
 
 # -----------------------------------------
@@ -53,7 +54,8 @@
       msg: "{{ ansible_facts.getent_group }}"
     when: group == True and view == True
 
-  - local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_groups.json
+  - name: Write file to {{export_path}}/{{ansible_hostname}}_groups.json
+    local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_groups.json
     when: group == True and export == True
 
 # -----------------------------------------
@@ -68,5 +70,6 @@
       msg: "{{ ansible_facts.getent_shadow }}"
     when: shadow == True and view == True
 
-  - local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_shadow.json
+  - name: Write file to {{export_path}}/{{ansible_hostname}}_shadow.json
+    local_action: copy content={{ ansible_facts.getent_passwd }} dest={{export_path}}/{{ansible_hostname}}_shadow.json
     when: shadow == True and export == True
