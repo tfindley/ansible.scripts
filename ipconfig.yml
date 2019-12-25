@@ -1,0 +1,51 @@
+- hosts: core2
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  tasks:
+  # - name: Start NetworkManager to configure {{ansible_default_ipv4.alias}} Interface
+  #   service:
+  #     name: NetworkManager
+  #     state: started
+
+  - name: Configure {{ansible_default_ipv4.alias}} network interface from existing state
+    block:
+
+    - set_fact:
+        net_mask: "{{ ansible_default_ipv4.network }}/{{ ansible_default_ipv4.netmask }}"
+
+    - name: Configure {{ansible_default_ipv4.alias}} network interface from existing state
+      nmcli:
+        conn_name: "{{ansible_default_ipv4.alias}}"
+        ifname: "{{ansible_default_ipv4.interface}}"
+        type: ethernet
+        ip4: "{{ansible_default_ipv4.address}}/{{ net_mask | ipaddr('prefix') }}"
+        gw4: "{{ansible_default_ipv4.gateway}}"
+        dns4: "{{ansible_dns.nameservers | join(' ')}}"
+        # dns4_search: "{{ansible_dns.search | join(' ')}}"
+        autoconnect: yes
+        state: present
+  
+    when: ip_override is not defined or ip_override == False
+
+
+  - name: Configure {{ansible_default_ipv4.alias}} network interface from defined state
+    block:
+
+    - name: Configure {{ansible_default_ipv4.alias}} network interface from defined state
+      nmcli:
+        conn_name: "{{ansible_default_ipv4.alias}}"
+        ifname: "{{ansible_default_ipv4.interface}}"
+        type: ethernet
+        ip4: "{{ip_address}}/{{ ip_cidr }}"
+        gw4: "{{ip_gateway}}"
+        dns4: "{{dns_nameservers | join(' ')}}"
+        # dns4_search: "{{dns_search | join(' ')}}"
+        autoconnect: yes
+        state: present
+  
+    when: ip_override is  defined and ip_override == True
+
+
+
